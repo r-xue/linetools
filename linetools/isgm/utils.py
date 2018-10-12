@@ -1004,6 +1004,70 @@ def group_coincident_components_old(comp_list, output_type='list'):
         return output_dict
 
 
+def synth_attrib(attribs, add_in_llimit=False, debug=False):
+
+    attrib = {}
+    attrib['N'] = 0 / u.cm**2
+    attrib['flag_N'] = 0
+    attrib['sig_N'] = [0.,0.] / u.cm**2
+
+    for iattrib in attribs:
+        if iattrib['flag_N'] == 0:  # No value
+            #warnings.warn("Absline {} has flag=0.  Hopefully you expected that".format(str(aline)))
+            continue
+        # Check N is filled
+        if np.isclose(iattrib['N'].value, 0.):
+            raise ValueError("Need to set N in attrib.  \n Consider linear_clm in linetools.analysis.absline")
+        if iattrib['flag_N'] == 1:  # Good value?
+            if attrib['flag_N'] == 1:  # Weighted mean
+                # Original
+                weight = 1. / np.mean(attrib['sig_N']) ** 2
+                mu = attrib['N'] * weight
+                # Update
+                weight += 1. / np.mean(iattrib['sig_N']) ** 2
+                attrib['N'] = (mu + iattrib['N'] / np.mean(iattrib['sig_N']) ** 2) / weight
+                attrib['sig_N'] = u.Quantity([np.sqrt(1. / weight)] * 2)
+            else:  # Fill
+                attrib['N'] = iattrib['N']
+                attrib['sig_N'] = iattrib['sig_N']
+                attrib['flag_N'] = 1
+        elif iattrib['flag_N'] == 2:  # Lower limit
+            if attrib['flag_N'] in [0, 3]:
+                attrib['N'] = iattrib['N']
+                attrib['sig_N'] = iattrib['sig_N']
+                attrib['flag_N'] = 2
+            elif attrib['flag_N'] == 2:
+                if iattrib['N'] > attrib['N']:
+                    attrib['N'] = iattrib['N']
+                    attrib['sig_N'] = iattrib['sig_N']
+            elif attrib['flag_N'] == 1:
+                if debug:
+                    pdb.set_trace()
+                if add_in_llimit:
+                    attrib['N'] += iattrib['N']
+                    attrib['flag_N'] = 2
+                else:
+                    if iattrib['N'] > attrib['N']:
+                        attrib['N'] += iattrib['N']
+                        attrib['flag_N'] = 2
+        elif iattrib['flag_N'] == 3:  # Upper limit
+            if attrib['flag_N'] == 0:
+                attrib['N'] = iattrib['N']
+                attrib['sig_N'] = iattrib['sig_N']
+                attrib['flag_N'] = 3
+            elif attrib['flag_N'] in [1, 2]:
+                pass
+            elif attrib['flag_N'] == 3:
+                if iattrib['N'] < attrib['N']:
+                    attrib['N'] = iattrib['N']
+                    attrib['sig_N'] = iattrib['sig_N']
+        elif iattrib['flag_N'] == 0:  # No value
+            warnings.warn("Absline {} has flag=0.  Hopefully you expected that")
+        else:
+            raise ValueError("Bad flag_N value")
+
+    return attrib
+
 def unique_components(comps1, comps2, tol=5*u.arcsec):
     """ Identify which AbsComponent members of the comps1 list
     are *not* within the comps2 list, to given tolerances.

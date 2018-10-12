@@ -27,6 +27,7 @@ from linetools.abund import ions
 from linetools import utils as ltu
 from linetools.lists.linelist import LineList
 from linetools.analysis.zlimits import zLimits
+from linetools.isgm import utils as ltiu
 
 # Global import for speed
 c_kms = const.c.to('km/s').value
@@ -730,8 +731,25 @@ class AbsComponent(object):
                 aline.measure_aodm(**kwargs)
         # Collate
         self.attrib['flag_N'] = 0
+
+        # Group by transition
+        all_wrest = np.array([aline.wrest in self._abslines])
+        uni_wrest = np.unique(all_wrest)
+
+        # Loop on unique transitions
+        all_attrib = []
+        for uwrest in uni_wrest:
+            idx = all_wrest == uwrest
+            sub_attrib = [self._abslines[ii].attrib for ii in np.where(idx)[0]]
+            tattrib = ltiu.synth_lines(sub_attrib, add_in_llimit=True, debug=debug)
+            all_attrib.append(tattrib)
+
+        # Now sync again!
+
         if debug:
             pdb.set_trace()
+        '''
+        # Loop
         for aline in self._abslines:
             if aline.attrib['flag_N'] == 0:  # No value
                 warnings.warn("Absline {} has flag=0.  Hopefully you expected that".format(str(aline)))
@@ -778,6 +796,8 @@ class AbsComponent(object):
                 warnings.warn("Absline {} has flag=0.  Hopefully you expected that")
             else:
                 raise ValueError("Bad flag_N value")
+        '''
+
         # Enforce 2-element error arrays
         if self.attrib['sig_N'].size == 1:
             self.attrib['sig_N'] = [self.attrib['sig_N'].value]*2 * self.attrib['sig_N'].unit
