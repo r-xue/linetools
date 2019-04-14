@@ -595,7 +595,7 @@ class XSpectrum1D(object):
             raise IOError("Spectrum must be normalized!")
         #
         # Generate
-        newspec = XSpectrum1D.from_tuple((self.wavelength, self.flux/np.max(self.flux), self.sig),
+        newspec = XSpectrum1D.from_tuple((self.wavelength, self.flux/np.max(self.flux), self.sig/np.max(self.flux)),
                                          meta=self.meta.copy())
         # Return
         return newspec
