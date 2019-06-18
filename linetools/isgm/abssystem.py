@@ -530,7 +530,7 @@ class AbsSystem(object):
                 # Measure
                 iline.measure_restew(**kwargs)
 
-    def measure_aodm(self, spec=None, **kwargs):
+    def measure_aodm(self, spec=None, verbose=True, **kwargs):
         """ Measure ADOM columns for the list of lines
         Note: Components are *not* updated by default
 
@@ -553,7 +553,8 @@ class AbsSystem(object):
             # Measure
             iline.measure_aodm(**kwargs)
         #
-        print("You may now wish to update the component column densities with update_component_colm()")
+        if verbose:
+            print("You may now wish to update the component column densities with update_component_colm()")
 
     def update_component_colm(self, **kwargs):
         """ Synthesize/update column density measurements for components
